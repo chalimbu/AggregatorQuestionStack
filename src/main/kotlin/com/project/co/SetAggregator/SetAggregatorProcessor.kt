@@ -4,6 +4,8 @@ import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.Input
 import org.springframework.cloud.stream.annotation.Output
 import org.springframework.cloud.stream.messaging.Processor
+import org.springframework.context.annotation.Bean
+import org.springframework.integration.aggregator.CorrelationStrategy
 import org.springframework.scheduling.annotation.Scheduled
 
 
@@ -21,4 +23,7 @@ class SetAggregatorProcessor(val storageService: StorageService) {
         storageService.messages.clear()
         return message;
     }
+
+
+
 }
