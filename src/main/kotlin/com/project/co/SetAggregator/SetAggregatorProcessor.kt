@@ -1,24 +1,33 @@
 package com.project.co.SetAggregator
 
-import org.springframework.cloud.stream.annotation.EnableBinding
-import org.springframework.cloud.stream.annotation.Input
-import org.springframework.cloud.stream.annotation.Output
-import org.springframework.cloud.stream.messaging.Processor
-import org.springframework.scheduling.annotation.Scheduled
 
+import org.springframework.context.annotation.Configuration
+import reactor.core.publisher.Flux
+import reactor.core.publisher.GroupedFlux
+import reactor.core.publisher.Mono
+import java.time.Duration
+import java.util.*
+import java.util.function.BiFunction
+import java.util.function.Function
 
-@EnableBinding(Processor::class)
-class SetAggregatorProcessor(val storageService: StorageService) {
-    @Input
-    public fun inputMessage(input: Map<String,Any>){
-        storageService.messages.add(input)
+@Configuration
+class SetAggregatorProcessor : Function<Flux<Map<String, Any>>, Flux<MutableList<Map<String, Any>>>> {
+
+    override fun apply(data: Flux<Map<String, Any>>):Flux<MutableList<Map<String, Any>>> {
+        return data.window(Duration.ofSeconds(20)).flatMap { window: Flux<Map<String, Any>> ->
+           this.aggregateList(window)
+
+        }
     }
 
-    @Output
-    @Scheduled(fixedDelay = 20000)
-    public fun produceOutput():List<Map<String,Any>>{
-        val message= storageService.messages
-        storageService.messages.clear()
-        return message;
+    private fun aggregateList(group: Flux<Map<String, Any>>): Mono<MutableList<Map<String, Any>>>? {
+        return group.reduce(
+            mutableListOf(),
+            BiFunction<MutableList<Map<String, Any>>, Map<String, Any>, MutableList<Map<String, Any>>> {
+                    acumulator: MutableList<Map<String, Any>>, element: Map<String, Any> ->
+                acumulator.add(element)
+                acumulator
+            }
+        )
     }
 }
